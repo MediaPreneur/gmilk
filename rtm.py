@@ -30,7 +30,7 @@ class Rtm:
          rsp = self.get_response(url)
          return (rsp.getElementsByTagName("frob")[0].childNodes[0].data,None)
       except Exception as detail:
-         sys.stderr.write("Error on get_frob: %s" % detail)
+         sys.stderr.write(f"Error on get_frob: {detail}")
          return (None,detail.__str__())
 
    def get_auth_token(self, frob):
@@ -64,8 +64,8 @@ class Rtm:
       try:
          args = self.sign_args(args, with_auth_token, with_frob)
       except Exception:
-         sys.stderr.write("Error on get_url: "+detail)
-      return base_url + '?' + urllib.urlencode(args)
+         sys.stderr.write(f"Error on get_url: {detail}")
+      return f'{base_url}?{urllib.urlencode(args)}'
     
    def sign_args(self, args, with_auth_token=True, with_frob=None):
       """
@@ -83,7 +83,7 @@ class Rtm:
          args['api_key'] = RTM_API_KEY
          args['api_sig'] = self.get_signature(args)
       except Exception as detail:
-         sys.stderr.write("Error on sign_args: "+detail)
+         sys.stderr.write(f"Error on sign_args: {detail}")
       return args
 
    def connectivity(self):
@@ -136,7 +136,7 @@ class Rtm:
       @param token: Can be read, write or delete
       """
       frob, msg = self.get_frob()
-      if frob==None:
+      if frob is None:
          return (None,None,msg)
       args = {'perms': perms}
       return (self.get_url(RTM_SERVICE_AUTH, args, False, frob), frob, msg)
@@ -151,18 +151,20 @@ class Rtm:
       return time[0].firstChild.data
 
    def complete_task(self,task,timeline):
-      args  = {'method': 'rtm.tasks.complete'}    
-      args['timeline']        = timeline
-      args['list_id']         = task.list_id
-      args['taskseries_id']   = task.series_id
-      args['task_id']         = task.id
+      args = {
+          'method': 'rtm.tasks.complete',
+          'timeline': timeline,
+          'list_id': task.list_id,
+          'taskseries_id': task.series_id,
+          'task_id': task.id,
+      }
       url   = self.get_url(RTM_SERVICE_METHODS, args)
       rsp   = self.get_response(url)
       ctask = rsp.getElementsByTagName("task");
       return len(ctask)>0
 
    def get_task_list(self,type,filter=None):
-      args = {'method': 'rtm.tasks.getList'}    
+      args = {'method': 'rtm.tasks.getList'}
       if filter:
          args['filter'] = filter
       url = self.get_url(RTM_SERVICE_METHODS, args)
@@ -170,26 +172,20 @@ class Rtm:
       tasks = []
 
       for list_node in rsp.getElementsByTagName("list"):
-          list_id = list_node.getAttribute("id")
-          for taskseries_node in list_node.getElementsByTagName("taskseries"):
-             sid  = taskseries_node.getAttribute("id")
-             url  = taskseries_node.getAttribute("url")
-             task = taskseries_node.getElementsByTagName("task")
-             nts  = taskseries_node.getElementsByTagName("notes")
-             ntg  = taskseries_node.getElementsByTagName("tags")
-             id   = task[0].getAttribute("id")	if len(task)>0 else taskseries_node.getAttribute("id")
-             due  = task[0].getAttribute("due") if len(task)>0 else taskseries_node.getAttribute("due")
-             name = taskseries_node.getAttribute("name")
+         list_id = list_node.getAttribute("id")
+         for taskseries_node in list_node.getElementsByTagName("taskseries"):
+            sid  = taskseries_node.getAttribute("id")
+            url  = taskseries_node.getAttribute("url")
+            task = taskseries_node.getElementsByTagName("task")
+            nts  = taskseries_node.getElementsByTagName("notes")
+            ntg  = taskseries_node.getElementsByTagName("tags")
+            id   = task[0].getAttribute("id")	if len(task)>0 else taskseries_node.getAttribute("id")
+            due  = task[0].getAttribute("due") if len(task)>0 else taskseries_node.getAttribute("due")
+            name = taskseries_node.getAttribute("name")
 
-             note_str   = []
-             notes      = nts[0].getElementsByTagName("note")
-             for note in notes:
-                note_str.append(note.firstChild.data)
-
-             tags_str = []
-             tags     = ntg[0].getElementsByTagName("tag")
-             for tag in tags:
-                tags_str.append(tag.firstChild.data)
-
-             tasks.append(Task(type,id,name,due,list_id,sid,None,note_str,tags_str,url))
+            notes      = nts[0].getElementsByTagName("note")
+            note_str = [note.firstChild.data for note in notes]
+            tags     = ntg[0].getElementsByTagName("tag")
+            tags_str = [tag.firstChild.data for tag in tags]
+            tasks.append(Task(type,id,name,due,list_id,sid,None,note_str,tags_str,url))
       return tasks

@@ -18,4 +18,4 @@ class Task:
       self.url       = url
 
    def __str__(self):
-      return "%s %s %s %s %s %s" % (self.type,self.id,self.name,self.due,",".join(self.tags),self.url)
+      return f'{self.type} {self.id} {self.name} {self.due} {",".join(self.tags)} {self.url}'

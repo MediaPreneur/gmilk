@@ -115,7 +115,7 @@ class Gmilk:
          self.gconf.set_int("/apps/gmilk/interval",self.interval)
 
       self.tags = self.gconf.get_list("/apps/gmilk/tags",gconf.VALUE_STRING)
-      if self.tags==None or len(self.tags)<1:
+      if self.tags is None or len(self.tags) < 1:
          self.tags = []
 
       if self.rtm.check_token(self.token):
@@ -152,26 +152,26 @@ class Gmilk:
          self.menu.remove(self.authorizeItem)
 
    def make_config_menuitem(self):
-      if self.configItem==None:
+      if self.configItem is None:
          self.configItem = gtk.MenuItem(_("Configuration"))
          self.configItem.connect('activate',self.config,self.statusIcon)
       self.menu.append(self.configItem)         
 
    def make_check_menuitem(self):
-      if self.checkItem==None:
+      if self.checkItem is None:
          self.checkItem = gtk.MenuItem(_("Check now!"))
          self.checkItem.connect('activate', self.check_now)
       self.menu.append(self.checkItem)
       return self.checkItem
 
    def make_about_menuitem(self):
-      if self.aboutItem==None:
+      if self.aboutItem is None:
          self.aboutItem = gtk.MenuItem(_("About"))
          self.aboutItem.connect('activate', self.about, self.statusIcon)
       self.menu.append(self.aboutItem)
 
    def make_quit_menuitem(self):
-      if self.quitItem==None:
+      if self.quitItem is None:
          self.quitItem = gtk.MenuItem(_("Quit"))
          self.quitItem.connect('activate', self.quit, self.statusIcon)
       self.menu.append(self.quitItem)
@@ -184,7 +184,7 @@ class Gmilk:
       t.start()
 
    def check_tasks(self):
-      if(self.timeline==None):
+      if self.timeline is None:
          self.set_tooltip(_("Creating a timeline ..."))
          self.timeline = self.rtm.create_timeline()
 
@@ -195,13 +195,25 @@ class Gmilk:
       today_str      = today.strftime("%Y-%m-%d")
       tomorrow_str   = tomorrow.strftime("%Y-%m-%d")
 
-      self.today_tasks    = self.rtm.get_task_list(Task.TODAY,"due:"+today_str+" NOT (completedBefore:"+today_str+" or completed:"+today_str+")")
-      self.tomorrow_tasks = self.rtm.get_task_list(Task.TOMORROW,"due:"+tomorrow_str+" NOT (completedBefore:"+today_str+" or completed:"+today_str+")")
-      self.due_tasks      = self.rtm.get_task_list(Task.DUE,"dueBefore:"+today_str+" NOT (completedBefore:"+today_str+" or completed:"+today_str+")")
+      self.today_tasks = self.rtm.get_task_list(
+          Task.TODAY,
+          f"due:{today_str} NOT (completedBefore:{today_str} or completed:{today_str})",
+      )
+      self.tomorrow_tasks = self.rtm.get_task_list(
+          Task.TOMORROW,
+          f"due:{tomorrow_str} NOT (completedBefore:{today_str} or completed:{today_str})",
+      )
+      self.due_tasks = self.rtm.get_task_list(
+          Task.DUE,
+          f"dueBefore:{today_str} NOT (completedBefore:{today_str} or completed:{today_str})",
+      )
 
       if len(self.tags)>0:
-         tag_filter = "("+(" or ".join(["tag:%s" % tag for tag in self.tags]))+")"
-         self.tagged_tasks = self.rtm.get_task_list(Task.TAGGED,"due:never AND NOT (completedBefore:"+today_str+" or completed:"+today_str+") AND "+tag_filter)
+         tag_filter = "(" + " or ".join([f"tag:{tag}" for tag in self.tags]) + ")"
+         self.tagged_tasks = self.rtm.get_task_list(
+             Task.TAGGED,
+             f"due:never AND NOT (completedBefore:{today_str} or completed:{today_str}) AND {tag_filter}",
+         )
       else:
          self.tagged_tasks = []
 
@@ -228,7 +240,7 @@ class Gmilk:
       noti.show()
 
    def make_check(self):
-      return ("%s%s%s" % (self.today_count,self.tomorrow_count,self.due_count))
+      return f"{self.today_count}{self.tomorrow_count}{self.due_count}"
 
    def get_icon(self,icon):
       for base in DATA_DIRS:
@@ -303,8 +315,8 @@ class Gmilk:
       for task in tasks:
          if tagged and len(task.tags)>0:
             tags = ", ".join(sorted(task.tags))
-            if not tags in self.tagged_items:
-               item = gtk.MenuItem("- "+tags.capitalize())
+            if tags not in self.tagged_items:
+               item = gtk.MenuItem(f"- {tags.capitalize()}")
                menu = gtk.Menu()
                item.set_submenu(menu)
                self.menu.append(item)
@@ -330,10 +342,10 @@ class Gmilk:
             tooltip = "\n".join(task.notes)
 
          if task.url!=None and len(task.url)>0:
-            tooltip += "\n" if len(tooltip)>0 else ""
-            tooltip += "URL: "+task.url
+            tooltip += "\n" if tooltip != '' else ""
+            tooltip += f"URL: {task.url}"
 
-         if len(tooltip)>0:
+         if tooltip != '':
             self.menuItem.set_tooltip_text(tooltip)
 
          menu.append(self.menuItem)
@@ -345,7 +357,7 @@ class Gmilk:
       self.set_tooltip(_("%d tasks found.") % self.task_count())
 
    def complete(self,widget,task=None,silent=False):
-      if task==None:
+      if task is None:
          return
 
       if not silent:
@@ -380,9 +392,8 @@ class Gmilk:
                   if len(parent.get_children())<1: # - Teste
                      widget = parent.get_attach_widget()
                      self.menu.remove(widget)
-         else:
-            if not silent:
-               self.show_error(_("Could not mark task as complete."))
+         elif not silent:
+            self.show_error(_("Could not mark task as complete."))
       except Exception as exc:
          if not silent:
             self.show_error(_("There was an error marking task as complete: %s") % exc)
@@ -420,8 +431,8 @@ class Gmilk:
    def authorize(self,widget,data=None):
       (url,frob,msg) = self.rtm.auth_url("write")
 
-      if frob==None:
-         self.show_error("Error with Remember the Milk API: %s" % msg)
+      if frob is None:
+         self.show_error(f"Error with Remember the Milk API: {msg}")
          return
 
       self.gconf.set_string("/apps/gmilk/frob",frob)
@@ -471,7 +482,7 @@ class Gmilk:
       self.about.set_license(__license__)
       self.about.set_website(__website__)
       self.about.set_website_label(__website__)
-      self.about.set_authors(["%s <%s>" % (__author__,__email__)])
+      self.about.set_authors([f"{__author__} <{__email__}>"])
       self.about.set_logo(gtk.gdk.pixbuf_new_from_file(self.get_icon("empty.png")))
       self.about.run()
       self.about.destroy()
